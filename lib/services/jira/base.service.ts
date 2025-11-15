@@ -95,18 +95,10 @@ export class BaseJiraService {
       let isLast = firstResult.data.isLast ?? true;
       pageCount++;
 
-      console.log('[searchAllIssues] 첫 페이지:', {
-        조회개수: allIssues.length,
-        isLast,
-        hasNextToken: !!nextPageToken,
-      });
+      // 첫 페이지 조회 완료
 
       // 나머지 페이지 요청 (isLast가 false이고 nextPageToken이 있는 동안)
       while (!isLast && nextPageToken) {
-        console.log(
-          `[searchAllIssues] 페이지 ${pageCount + 1} 조회 중... (token: ${nextPageToken.slice(0, 20)}...)`
-        );
-
         const result = await this.client.get<JiraSearchResult>(
           JIRA_ROUTES.ISSUE_SEARCH,
           {
@@ -126,15 +118,7 @@ export class BaseJiraService {
         nextPageToken = result.data.nextPageToken;
         isLast = result.data.isLast ?? true;
         pageCount++;
-
-        console.log(
-          `[searchAllIssues] 페이지 ${pageCount}: ${result.data.issues.length}개 추가, 누적 ${allIssues.length}개, isLast=${isLast}`
-        );
       }
-
-      console.log(
-        `[searchAllIssues] 최종: ${allIssues.length}개 수집 완료 (${pageCount}페이지)`
-      );
 
       return {
         success: true,

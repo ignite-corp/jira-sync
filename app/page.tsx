@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { RefreshCw, User, Plus, ExternalLink } from 'lucide-react';
+import { RefreshCw, User, Plus, ExternalLink, Network } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   JIRA_USER_LIST,
@@ -436,12 +436,20 @@ export default function Home() {
               여러 Jira 인스턴스를 자동화하고 관리합니다
             </p>
           </div>
-          <Link href="/create-ticket">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              티켓 생성
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/flow-chart">
+              <Button variant="outline">
+                <Network className="mr-2 h-4 w-4" />
+                Flow Chart
+              </Button>
+            </Link>
+            <Link href="/create-ticket">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                티켓 생성
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
