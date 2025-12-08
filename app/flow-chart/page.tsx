@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Home, Download, FileText } from 'lucide-react';
+import { Home, Download, FileText, Plus } from 'lucide-react';
 
 // Mermaid 타입 정의
 declare global {
@@ -348,6 +348,12 @@ flowchart TD
               <Button variant="outline">
                 <FileText className="mr-2 h-4 w-4" />
                 배포 템플릿
+              </Button>
+            </Link>
+            <Link href="/create-epic">
+              <Button variant="outline">
+                <Plus className="mr-2 h-4 w-4" />
+                에픽 생성
               </Button>
             </Link>
             <Link href="/">

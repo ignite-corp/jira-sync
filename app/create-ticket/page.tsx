@@ -312,6 +312,12 @@ export default function CreateTicketPage() {
                 배포 템플릿
               </Button>
             </Link>
+            <Link href="/create-epic">
+              <Button variant="outline" size="sm">
+                <Plus className="mr-2 h-4 w-4" />
+                에픽 생성
+              </Button>
+            </Link>
           </div>
         </div>
       </header>

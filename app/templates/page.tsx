@@ -82,7 +82,7 @@ export default function TemplatesPage() {
       });
 
       setTimeout(() => setCopiedCpo(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error('복사에 실패했습니다.');
     }
   };
@@ -98,7 +98,7 @@ export default function TemplatesPage() {
       });
 
       setTimeout(() => setCopiedSofteer(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error('복사에 실패했습니다.');
     }
   };
@@ -291,7 +291,9 @@ export default function TemplatesPage() {
               <ol className="text-sm text-muted-foreground space-y-2">
                 <li>
                   1. 위 카드에서{' '}
-                  <span className="font-semibold text-foreground">"복사"</span>{' '}
+                  <span className="font-semibold text-foreground">
+                    &quot;복사&quot;
+                  </span>{' '}
                   버튼 클릭
                 </li>
                 <li>2. Slack 채널로 이동</li>

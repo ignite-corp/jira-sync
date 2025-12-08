@@ -449,6 +449,12 @@ export default function Home() {
                 Flow Chart
               </Button>
             </Link>
+            <Link href="/create-epic">
+              <Button variant="outline">
+                <Plus className="mr-2 h-4 w-4" />
+                에픽 생성
+              </Button>
+            </Link>
             <Link href="/create-ticket">
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
