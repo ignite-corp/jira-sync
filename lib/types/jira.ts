@@ -166,6 +166,7 @@ export interface JiraApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  details?: unknown;
 }
 
 // 요청 옵션

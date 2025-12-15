@@ -45,13 +45,14 @@ export class JiraClient {
       const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.error || '요청 처리 중 오류가 발생했습니다.');
+        return {
+          success: false,
+          error: result.error || '요청 처리 중 오류가 발생했습니다.',
+          details: result.details,
+        };
       }
 
-      return {
-        success: true,
-        data: result.data,
-      };
+      return { success: true, data: result.data };
     } catch (error) {
       console.error(`Jira ${this.instance} API Error:`, error);
       return {

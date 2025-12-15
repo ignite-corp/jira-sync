@@ -139,7 +139,25 @@ export function mapFieldsForAutoway(
     fields.reporter = { accountId: userInfo.hmgAccountId };
   }
 
-  // timetracking은 HMG에서 제외
+  // timetracking (HMG에도 반영: estimate 계열만)
+  // - timeSpent는 Jira에서 worklog로만 관리되는 값이라 필드 업데이트로는 일반적으로 설정 불가
+  if (fehgFields.timetracking) {
+    const tt = fehgFields.timetracking as {
+      originalEstimate?: string;
+      remainingEstimate?: string;
+      timeSpent?: string;
+    };
+
+    const timetracking: Record<string, string> = {};
+    if (tt.originalEstimate)
+      timetracking.originalEstimate = tt.originalEstimate;
+    if (tt.remainingEstimate)
+      timetracking.remainingEstimate = tt.remainingEstimate;
+
+    if (Object.keys(timetracking).length > 0) {
+      fields.timetracking = timetracking;
+    }
+  }
 
   // 스프린트는 AUTOWAY에서 제외
 

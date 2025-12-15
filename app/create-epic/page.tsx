@@ -86,7 +86,9 @@ export default function CreateEpicPage() {
           fields: {
             project: { key: 'AUTOWAY' },
             summary: `[FEHG] ${summary}`,
-            issuetype: { name: 'Task' }, // Electron 참고: AUTOWAY는 Task로 생성
+            // AUTOWAY 프로젝트 이슈 타입은 로캘/설정에 따라 달라질 수 있으나,
+            // 프로젝트 메타데이터상 "에픽"이 존재하므로 에픽 생성은 "에픽"으로 고정합니다.
+            issuetype: { name: '에픽' },
             description: {
               type: 'doc',
               version: 1,

@@ -13,11 +13,76 @@ import { jira } from '@/lib/services/jira';
 import { IGNITE_CUSTOM_FIELDS, JIRA_ENDPOINTS } from '@/lib/constants/jira';
 
 /**
+ * AUTOWAY 이슈 생성 시 사용할 issuetype 캐시
+ * - HMG Jira에서 프로젝트별로 허용되는 이슈 타입(이름/로캘)이 다를 수 있어 name 하드코딩이 깨질 수 있음
+ * - 가능하면 issuetype "id"로 생성하도록 함
+ */
+let autowayCreateIssueTypeIdCache: string | null = null;
+
+/**
  * HMG 프로젝트 동기화 서비스
  * FEHG → AUTOWAY 동기화 담당
  */
 export class HMGSyncService {
   constructor(private logger: SyncLogger) {}
+
+  private async resolveAutowayCreateIssueType(): Promise<
+    { id: string } | { name: string }
+  > {
+    // 이미 한번 찾았으면 재사용
+    if (autowayCreateIssueTypeIdCache) {
+      return { id: autowayCreateIssueTypeIdCache };
+    }
+
+    try {
+      const projectResult = await jira.hmg.getProject('AUTOWAY');
+      const projectData = projectResult.success ? projectResult.data : null;
+
+      // Jira /project/{key} 응답에는 issueTypes가 포함됨(타입 정의엔 빠져있어서 any 캐스팅)
+      const issueTypes = (projectData as unknown as { issueTypes?: unknown })
+        ?.issueTypes as Array<{
+        id: string;
+        name: string;
+        subtask?: boolean;
+      }> | null;
+
+      if (!issueTypes || issueTypes.length === 0) {
+        this.logger.warning(
+          'AUTOWAY: 프로젝트 issueTypes 조회 실패(비어있음) → issuetype name으로 fallback'
+        );
+        return { name: '작업' };
+      }
+
+      const nonSubtaskTypes = issueTypes.filter((t) => !t.subtask);
+      const preferredNames = [
+        '작업',
+        'Task',
+        '업무',
+        '스토리',
+        'Story',
+        '버그',
+        'Bug',
+      ];
+
+      const preferred = nonSubtaskTypes.find((t) =>
+        preferredNames.includes(t.name)
+      );
+      const chosen = preferred ?? nonSubtaskTypes[0] ?? issueTypes[0];
+
+      autowayCreateIssueTypeIdCache = chosen.id;
+      this.logger.info(
+        `AUTOWAY: issuetype 선택 → "${chosen.name}" (id=${chosen.id})`
+      );
+      return { id: chosen.id };
+    } catch (e) {
+      this.logger.warning(
+        `AUTOWAY: issuetype 조회 중 예외 → name fallback ("작업") - ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      );
+      return { name: '작업' };
+    }
+  }
 
   /**
    * FEHG 티켓을 AUTOWAY로 동기화
@@ -99,12 +164,13 @@ export class HMGSyncService {
 
       // 1. 필드 매핑
       const mappedFields = mapFieldsForAutoway(fehgTicket, assigneeAccountId);
+      const autowayIssueType = await this.resolveAutowayCreateIssueType();
 
       // 2. AUTOWAY 티켓 생성
       const createPayload: JiraIssueCreatePayload = {
         fields: {
           project: { key: 'AUTOWAY' },
-          issuetype: { name: '작업' },
+          issuetype: autowayIssueType,
           summary: fehgTicket.fields.summary,
           // 추후 적용: customfield_10002: autowayEpicKey (Epic Link)
           ...mappedFields,

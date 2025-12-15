@@ -62,9 +62,18 @@ async function handleJiraRequest(
     // URL 경로 구성
     const path = params.path.join('/');
     const searchParams = request.nextUrl.searchParams.toString();
-    const url = `${JIRA_ENDPOINTS.IGNITE}${JIRA_API_VERSION}/${path}${
-      searchParams ? `?${searchParams}` : ''
-    }`;
+    /**
+     * Jira Agile API는 /rest/agile/1.0 를 사용하고,
+     * Jira Platform API는 /rest/api/3 를 사용합니다.
+     *
+     * 기존 구현은 무조건 /rest/api/3 를 붙여서
+     * /rest/api/3/agile/... 형태의 잘못된 URL이 만들어졌습니다.
+     */
+    const isAgileApi = path.startsWith('agile/');
+    const baseUrl = isAgileApi
+      ? `${JIRA_ENDPOINTS.IGNITE}/rest`
+      : `${JIRA_ENDPOINTS.IGNITE}${JIRA_API_VERSION}`;
+    const url = `${baseUrl}/${path}${searchParams ? `?${searchParams}` : ''}`;
 
     // 요청 바디 읽기 (POST, PUT의 경우)
     let body;
