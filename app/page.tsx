@@ -692,6 +692,12 @@ export default function Home() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Link href="/deployment">
+              <Button variant="outline">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                배포 대장
+              </Button>
+            </Link>
             <Link href="/templates">
               <Button variant="outline">
                 <ExternalLink className="mr-2 h-4 w-4" />
