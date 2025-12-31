@@ -32,7 +32,9 @@ export class JiraClient {
         : '';
 
       // Next.js API Route를 통해 프록시 호출
-      const url = `/api/jira/${this.instance}/${path}${queryString}`;
+      // path 앞의 슬래시 제거 (중복 방지)
+      const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+      const url = `/api/jira/${this.instance}/${cleanPath}${queryString}`;
 
       const response = await fetch(url, {
         method,

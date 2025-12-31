@@ -68,7 +68,6 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('❌ API 오류:', error);
     return NextResponse.json(
       {
         success: false,

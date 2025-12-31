@@ -28,6 +28,7 @@ import {
   Rocket,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { JIRA_USER_LIST } from '@/lib/constants/jira';
 
 type TabType = 'document' | 'tagging';
 type DeploymentType = 'release' | 'adhoc' | 'hotfix';
@@ -37,6 +38,22 @@ const DEPLOYMENT_TYPE_LABELS: Record<DeploymentType, string> = {
   release: '정기배포',
   adhoc: '비정기배포',
   hotfix: '핫픽스',
+};
+
+interface Ticket {
+  key: string;
+  summary: string;
+  status: string;
+  duedate: string | null;
+  labels: string[];
+}
+
+// 현재 날짜를 YYYY-MM 형식으로 가져오기
+const getCurrentMonth = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
 };
 
 export default function DeploymentPage() {
@@ -53,15 +70,16 @@ export default function DeploymentPage() {
   const [existingDocUrl, setExistingDocUrl] = useState<string>('');
 
   // === 탭2: 배포 대상 티켓 선정 ===
-  const [tagProject, setTagProject] = useState<string>('');
-  const [deploymentTag, setDeploymentTag] = useState<string>('');
-  const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
+  const [tagProject, setTagProject] = useState<ProjectKey>('groupware');
+  const [selectedUser, setSelectedUser] = useState<string>('');
+  const [baseMonth, setBaseMonth] = useState<string>(getCurrentMonth());
   const [isLoadingTickets, setIsLoadingTickets] = useState(false);
-  const [myTickets, setMyTickets] = useState<
-    Array<{ key: string; summary: string }>
-  >([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
+  const [deploymentLabel, setDeploymentLabel] = useState<string>('');
+  const [needsQA, setNeedsQA] = useState<boolean>(false);
   const [isApplyingTags, setIsApplyingTags] = useState(false);
-  const [taggedTickets, setTaggedTickets] = useState<string[]>([]);
+  const [appliedTickets, setAppliedTickets] = useState<string[]>([]);
 
   // 배포대장 문서 생성 핸들러
   const handleCreateDocument = async () => {
@@ -137,32 +155,43 @@ export default function DeploymentPage() {
     }
   };
 
-  // 프로젝트 선택 시 내 담당 티켓 로딩
-  const handleTagProjectChange = async (value: string) => {
-    setTagProject(value);
-    setSelectedTickets([]);
-    setMyTickets([]);
-    setTaggedTickets([]);
-
-    if (!value) return;
+  // 티켓 조회 핸들러
+  const handleFetchTickets = async () => {
+    // 유효성 검증
+    if (!tagProject) {
+      toast.error('프로젝트를 선택해주세요.');
+      return;
+    }
+    if (!selectedUser) {
+      toast.error('담당자를 선택해주세요.');
+      return;
+    }
+    if (!baseMonth) {
+      toast.error('기준 월을 선택해주세요.');
+      return;
+    }
 
     setIsLoadingTickets(true);
+    setTickets([]);
+    setSelectedTickets([]);
+    setAppliedTickets([]);
+
     try {
-      toast.info('내 담당 티켓을 조회하는 중...');
+      toast.info('티켓을 조회하는 중...');
 
-      // TODO: API 호출 (나중에 구현)
-      // const response = await fetch(`/api/deployment/my-tickets?project=${value}`);
-      // const result = await response.json();
+      const response = await fetch(
+        `/api/deployment/my-tickets?project=${tagProject}&userName=${encodeURIComponent(selectedUser)}&baseMonth=${baseMonth}`
+      );
+      const result = await response.json();
 
-      // 임시: Mock 데이터
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const mockTickets = [
-        { key: 'FEHG-1234', summary: '[GW] 로그인 기능 개선' },
-        { key: 'FEHG-1235', summary: '[GW] 메인 페이지 버그 수정' },
-        { key: 'FEHG-1236', summary: '[CPO] 관리자 페이지 개발' },
-      ];
-      setMyTickets(mockTickets);
-      toast.success(`${mockTickets.length}개 티켓을 불러왔습니다.`);
+      if (result.success && result.tickets) {
+        setTickets(result.tickets);
+        toast.success(`${result.tickets.length}개 티켓을 조회했습니다!`, {
+          duration: 3000,
+        });
+      } else {
+        toast.error(result.error || '티켓 조회에 실패했습니다.');
+      }
     } catch (error) {
       toast.error(
         `티켓 조회 실패: ${error instanceof Error ? error.message : String(error)}`
@@ -183,53 +212,78 @@ export default function DeploymentPage() {
 
   // 전체 선택/해제
   const handleSelectAll = () => {
-    if (selectedTickets.length === myTickets.length) {
+    if (selectedTickets.length === tickets.length) {
       setSelectedTickets([]);
     } else {
-      setSelectedTickets(myTickets.map((t) => t.key));
+      setSelectedTickets(tickets.map((t) => t.key));
+    }
+  };
+
+  // 상태별 색상 클래스 반환
+  const getStatusColorClass = (status: string) => {
+    if (status === '완료' || status === 'Done') {
+      return 'bg-green-100 text-green-700';
+    } else if (status === '진행 중' || status === 'In Progress') {
+      return 'bg-blue-100 text-blue-700';
+    } else {
+      return 'bg-gray-100 text-gray-700';
     }
   };
 
   // 배포태그 적용 핸들러
   const handleApplyTags = async () => {
     // 유효성 검증
-    if (!tagProject) {
-      toast.error('프로젝트를 선택해주세요.');
-      return;
-    }
-    if (!deploymentTag.trim()) {
-      toast.error('배포태그를 입력해주세요.');
-      return;
-    }
     if (selectedTickets.length === 0) {
       toast.error('배포 대상 티켓을 선택해주세요.');
       return;
     }
+    if (!deploymentLabel.trim()) {
+      toast.error('배포 레이블을 입력해주세요.');
+      return;
+    }
 
     setIsApplyingTags(true);
-    setTaggedTickets([]);
+    setAppliedTickets([]);
 
     try {
       toast.info(
         `${selectedTickets.length}개 티켓에 배포태그를 적용하는 중...`
       );
 
-      // TODO: API 호출 (나중에 구현)
-      // const response = await fetch('/api/deployment/tag-tickets', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ tickets: selectedTickets, tag: deploymentTag }),
-      // });
+      // 적용할 레이블 구성
+      const labels = [deploymentLabel.trim(), 'FE'];
+      if (needsQA) {
+        labels.push('QA필요');
+      }
 
-      // 임시: 2초 딜레이
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const response = await fetch('/api/deployment/apply-tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketKeys: selectedTickets,
+          labels: labels,
+        }),
+      });
 
-      // 임시 성공 처리
-      setTaggedTickets(selectedTickets);
-      toast.success(
-        `${selectedTickets.length}개 티켓에 배포태그가 적용되었습니다!`,
-        { duration: 5000 }
-      );
+      const result = await response.json();
+
+      if (result.success && result.successTickets) {
+        setAppliedTickets(result.successTickets);
+
+        if (result.failedTickets && result.failedTickets.length > 0) {
+          toast.warning(
+            `${result.successTickets.length}개 성공, ${result.failedTickets.length}개 실패`,
+            { duration: 5000 }
+          );
+        } else {
+          toast.success(
+            `${result.successTickets.length}개 티켓에 배포태그가 적용되었습니다!`,
+            { duration: 5000 }
+          );
+        }
+      } else {
+        toast.error(result.error || '배포태그 적용에 실패했습니다.');
+      }
     } catch (error) {
       toast.error(
         `배포태그 적용 실패: ${error instanceof Error ? error.message : String(error)}`
@@ -482,7 +536,8 @@ export default function DeploymentPage() {
             <CardHeader>
               <CardTitle>배포 대상 티켓 선정</CardTitle>
               <CardDescription>
-                내 담당 티켓 중 배포 대상 티켓을 선택하고 배포태그를 적용합니다
+                담당자와 기준 월을 선택하여 티켓을 조회하고 배포태그를
+                적용합니다
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -494,8 +549,12 @@ export default function DeploymentPage() {
                 </label>
                 <Select
                   value={tagProject}
-                  onValueChange={handleTagProjectChange}
-                  disabled={isLoadingTickets}
+                  onValueChange={(value) => {
+                    setTagProject(value as ProjectKey);
+                    setTickets([]);
+                    setSelectedTickets([]);
+                    setAppliedTickets([]);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="프로젝트를 선택하세요" />
@@ -510,37 +569,84 @@ export default function DeploymentPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                {isLoadingTickets && (
-                  <p className="text-xs text-muted-foreground">
-                    내 담당 티켓을 불러오는 중...
-                  </p>
-                )}
                 <p className="text-xs text-muted-foreground">
                   현재는 Groupware만 가능합니다.
                 </p>
               </div>
 
-              {/* 티켓 목록이 로딩되면 표시 */}
-              {tagProject && myTickets.length > 0 && (
-                <>
-                  {/* 배포태그 입력 */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-1">
-                      배포태그 입력
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                      placeholder="예: 2025-01-15-hotfix"
-                      value={deploymentTag}
-                      onChange={(e) => setDeploymentTag(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      배포를 구분할 수 있는 태그를 입력하세요 (공백 없이)
-                    </p>
-                  </div>
+              {/* 담당자 선택 */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-1">
+                  담당자 선택
+                  <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  value={selectedUser}
+                  onValueChange={(value) => {
+                    setSelectedUser(value);
+                    setTickets([]);
+                    setSelectedTickets([]);
+                    setAppliedTickets([]);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="담당자를 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {JIRA_USER_LIST.map((user) => (
+                      <SelectItem key={user.hmgAccountId} value={user.name}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  {/* 티켓 선택 */}
-                  <div className="space-y-2">
+              {/* 기준 월 선택 */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-1">
+                  기준 월 선택
+                  <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="month"
+                  value={baseMonth}
+                  onChange={(e) => {
+                    setBaseMonth(e.target.value);
+                    setTickets([]);
+                    setSelectedTickets([]);
+                    setAppliedTickets([]);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  선택한 월의 티켓만 조회됩니다
+                </p>
+              </div>
+
+              {/* 티켓 조회 버튼 */}
+              <div className="pt-4 border-t">
+                <Button
+                  onClick={handleFetchTickets}
+                  disabled={
+                    isLoadingTickets ||
+                    !tagProject ||
+                    !selectedUser ||
+                    !baseMonth
+                  }
+                  className="w-full"
+                  size="lg"
+                >
+                  <Tag
+                    className={`mr-2 h-4 w-4 ${isLoadingTickets ? 'animate-spin' : ''}`}
+                  />
+                  {isLoadingTickets ? '조회 중...' : '티켓 조회'}
+                </Button>
+              </div>
+
+              {/* 티켓 목록 */}
+              {tickets.length > 0 && (
+                <>
+                  <div className="pt-4 border-t space-y-4">
                     <div className="flex items-center justify-between">
                       <label className="text-sm font-medium flex items-center gap-1">
                         배포 대상 티켓 선택
@@ -551,14 +657,14 @@ export default function DeploymentPage() {
                         size="sm"
                         onClick={handleSelectAll}
                       >
-                        {selectedTickets.length === myTickets.length
+                        {selectedTickets.length === tickets.length
                           ? '전체 해제'
                           : '전체 선택'}
                       </Button>
                     </div>
 
                     <div className="border rounded-lg p-4 space-y-2 max-h-96 overflow-y-auto">
-                      {myTickets.map((ticket) => (
+                      {tickets.map((ticket) => (
                         <label
                           key={ticket.key}
                           className="flex items-start gap-3 p-2 rounded hover:bg-muted cursor-pointer transition-colors"
@@ -570,11 +676,42 @@ export default function DeploymentPage() {
                             className="mt-1 cursor-pointer"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm">
-                              {ticket.key}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-xs text-muted-foreground">
+                                {ticket.key}
+                              </div>
+                              {ticket.labels && ticket.labels.length > 0 && (
+                                <div className="flex gap-1 flex-wrap">
+                                  {ticket.labels.slice(0, 3).map((label) => (
+                                    <span
+                                      key={label}
+                                      className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium"
+                                    >
+                                      {label}
+                                    </span>
+                                  ))}
+                                  {ticket.labels.length > 3 && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                                      +{ticket.labels.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            <div className="text-sm text-muted-foreground truncate">
+                            <div className="text-sm font-medium text-foreground truncate">
                               {ticket.summary}
+                            </div>
+                            <div className="text-xs mt-1 flex gap-2 items-center">
+                              <span
+                                className={`px-2 py-0.5 rounded-full font-medium ${getStatusColorClass(ticket.status)}`}
+                              >
+                                {ticket.status}
+                              </span>
+                              {ticket.duedate && (
+                                <span className="text-muted-foreground">
+                                  종료일: {ticket.duedate}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </label>
@@ -586,14 +723,50 @@ export default function DeploymentPage() {
                     </p>
                   </div>
 
+                  {/* 레이블 입력 */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-1">
+                      배포 레이블
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      placeholder="예: hotfix_260101"
+                      value={deploymentLabel}
+                      onChange={(e) => setDeploymentLabel(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      배포 종류와 날짜를 조합한 레이블을 입력하세요 (예:
+                      hotfix_260101, adhoc_251225)
+                    </p>
+                  </div>
+
+                  {/* QA 필요 체크박스 */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={needsQA}
+                        onChange={(e) => setNeedsQA(e.target.checked)}
+                        className="cursor-pointer"
+                      />
+                      <span className="text-sm font-medium">
+                        QA 필요 (QA필요 레이블 자동 추가)
+                      </span>
+                    </label>
+                    <p className="text-xs text-muted-foreground pl-6">
+                      체크 시 &apos;QA필요&apos; 레이블이 자동으로 추가되며,
+                      &apos;FE&apos; 레이블은 기본으로 추가됩니다
+                    </p>
+                  </div>
+
                   {/* 적용 버튼 */}
                   <div className="pt-4 border-t">
                     <Button
                       onClick={handleApplyTags}
                       disabled={
                         isApplyingTags ||
-                        !deploymentTag.trim() ||
-                        selectedTickets.length === 0
+                        selectedTickets.length === 0 ||
+                        !deploymentLabel.trim()
                       }
                       className="w-full"
                       size="lg"
@@ -601,34 +774,36 @@ export default function DeploymentPage() {
                       <Tag
                         className={`mr-2 h-4 w-4 ${isApplyingTags ? 'animate-spin' : ''}`}
                       />
-                      {isApplyingTags ? '적용 중...' : '배포태그 적용'}
+                      {isApplyingTags
+                        ? '적용 중...'
+                        : '배포대장에 티켓 추가하기'}
                     </Button>
                   </div>
 
                   {/* 적용 결과 */}
-                  {taggedTickets.length > 0 && (
+                  {appliedTickets.length > 0 && (
                     <div className="pt-4 border-t">
                       <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
                         <p className="text-sm font-semibold text-green-900">
-                          ✓ {taggedTickets.length}개 티켓에 배포태그가
+                          ✓ {appliedTickets.length}개 티켓에 배포태그가
                           적용되었습니다!
                         </p>
+                        <div className="text-xs text-muted-foreground">
+                          적용된 레이블: {deploymentLabel}, FE
+                          {needsQA && ', QA필요'}
+                        </div>
                         <div className="space-y-1 max-h-48 overflow-y-auto">
-                          {taggedTickets.map((ticketKey) => (
-                            <div
+                          {appliedTickets.map((ticketKey) => (
+                            <a
                               key={ticketKey}
-                              className="flex items-center gap-2"
+                              href={`https://hmg.atlassian.net/browse/${ticketKey}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline inline-flex items-center gap-1 text-sm block"
                             >
-                              <a
-                                href={`https://hmg.atlassian.net/browse/${ticketKey}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline inline-flex items-center gap-1 text-sm"
-                              >
-                                {ticketKey}
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            </div>
+                              {ticketKey}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
                           ))}
                         </div>
                       </div>
@@ -637,21 +812,14 @@ export default function DeploymentPage() {
                 </>
               )}
 
-              {/* 프로젝트 선택 전 안내 */}
-              {!tagProject && (
+              {/* 티켓 조회 전 안내 */}
+              {tickets.length === 0 && !isLoadingTickets && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Tag className="h-12 w-12 mx-auto mb-3 opacity-50" />
                   <p className="text-sm">
-                    프로젝트를 선택하면 내 담당 티켓을 불러옵니다
+                    담당자와 기준 월을 선택한 후 &apos;티켓 조회&apos; 버튼을
+                    클릭하세요
                   </p>
-                </div>
-              )}
-
-              {/* 티켓이 없는 경우 */}
-              {tagProject && !isLoadingTickets && myTickets.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Tag className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">내 담당 티켓이 없습니다</p>
                 </div>
               )}
             </CardContent>
