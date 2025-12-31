@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,6 +68,34 @@ export default function DeploymentPage() {
   const [createdDocUrl, setCreatedDocUrl] = useState<string>('');
   const [createdDocTitle, setCreatedDocTitle] = useState<string>('');
   const [existingDocUrl, setExistingDocUrl] = useState<string>('');
+  const [recommendedDocs, setRecommendedDocs] = useState<
+    Array<{
+      id: string;
+      title: string;
+      url: string;
+      type: string;
+      date: string;
+    }>
+  >([]);
+  const [upcomingDocs, setUpcomingDocs] = useState<
+    Array<{
+      id: string;
+      title: string;
+      url: string;
+      type: string;
+      date: string;
+    }>
+  >([]);
+  const [pastDocs, setPastDocs] = useState<
+    Array<{
+      id: string;
+      title: string;
+      url: string;
+      type: string;
+      date: string;
+    }>
+  >([]);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(false);
 
   // === 탭2: 배포 대상 티켓 선정 ===
   const [tagProject, setTagProject] = useState<ProjectKey>('groupware');
@@ -80,6 +108,29 @@ export default function DeploymentPage() {
   const [needsQA, setNeedsQA] = useState<boolean>(false);
   const [isApplyingTags, setIsApplyingTags] = useState(false);
   const [appliedTickets, setAppliedTickets] = useState<string[]>([]);
+
+  // 배포대장 문서 목록 조회
+  useEffect(() => {
+    const loadDeploymentDocs = async () => {
+      setIsLoadingDocs(true);
+      try {
+        const response = await fetch('/api/deployment/list-documents');
+        const result = await response.json();
+
+        if (result.success) {
+          setRecommendedDocs(result.recommended || []);
+          setUpcomingDocs(result.upcoming || []);
+          setPastDocs(result.past || []);
+        }
+      } catch {
+        // 조용히 실패 처리
+      } finally {
+        setIsLoadingDocs(false);
+      }
+    };
+
+    loadDeploymentDocs();
+  }, []);
 
   // 배포대장 문서 생성 핸들러
   const handleCreateDocument = async () => {
@@ -526,6 +577,105 @@ export default function DeploymentPage() {
                   </div>
                 </div>
               )}
+
+              {/* 기존 배포대장 목록 */}
+              <div className="pt-6 border-t space-y-6">
+                {/* 헤더 */}
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">배포대장 목록</h3>
+                  {isLoadingDocs && (
+                    <span className="text-xs text-muted-foreground">
+                      로딩 중...
+                    </span>
+                  )}
+                </div>
+
+                {/* 추천 배포대장 */}
+                {recommendedDocs.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-medium text-blue-700 flex items-center gap-1">
+                      <span>⭐</span>
+                      추천 배포대장
+                    </h4>
+                    <div className="grid grid-cols-1 gap-2">
+                      {recommendedDocs.map((doc) => (
+                        <a
+                          key={doc.id}
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-2 p-3 rounded-lg border border-blue-300 bg-blue-50 hover:bg-blue-100 transition-colors shadow-sm"
+                        >
+                          <span className="text-sm font-semibold text-blue-900">
+                            {doc.title}
+                          </span>
+                          <ExternalLink className="h-4 w-4 flex-shrink-0 text-blue-700" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 전체 배포대장 (미래) */}
+                {upcomingDocs.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-medium text-muted-foreground">
+                      전체 배포대장
+                    </h4>
+                    <div className="space-y-1">
+                      {upcomingDocs.map((doc) => (
+                        <a
+                          key={doc.id}
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-2 p-2 rounded border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                        >
+                          <span className="text-sm text-foreground truncate">
+                            {doc.title}
+                          </span>
+                          <ExternalLink className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 지나간 배포대장 */}
+                {pastDocs.length > 0 && (
+                  <details className="space-y-2">
+                    <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground">
+                      지나간 배포대장 ({pastDocs.length}개)
+                    </summary>
+                    <div className="space-y-1 mt-2 max-h-96 overflow-y-auto">
+                      {pastDocs.map((doc) => (
+                        <a
+                          key={doc.id}
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-2 p-2 rounded border border-gray-200 bg-gray-50/50 hover:bg-gray-100/50 transition-colors opacity-75"
+                        >
+                          <span className="text-xs text-muted-foreground truncate">
+                            {doc.title}
+                          </span>
+                          <ExternalLink className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                        </a>
+                      ))}
+                    </div>
+                  </details>
+                )}
+
+                {/* 로딩 완료 후 배포대장이 없는 경우 */}
+                {!isLoadingDocs &&
+                  recommendedDocs.length === 0 &&
+                  upcomingDocs.length === 0 &&
+                  pastDocs.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      배포대장이 없습니다
+                    </p>
+                  )}
+              </div>
             </CardContent>
           </Card>
         )}
