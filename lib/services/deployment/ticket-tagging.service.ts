@@ -79,7 +79,11 @@ export async function applyDeploymentTags(
           []) as string[];
 
         // 2. 새 labels 병합 (중복 제거)
-        const newLabels = Array.from(new Set([...existingLabels, ...labels]));
+        // 빈 배열이 전달되면 라벨을 모두 제거
+        const newLabels =
+          labels.length === 0
+            ? []
+            : Array.from(new Set([...existingLabels, ...labels]));
 
         // 3. 티켓 업데이트
         await axios.put(

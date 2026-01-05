@@ -187,7 +187,7 @@ export class SyncOrchestrator {
     const user = Object.values(JIRA_USERS).find(
       (u) => u.igniteAccountId === options.assigneeAccountId
     );
-    const jql = `project = FEHG AND assignee = "${options.assigneeAccountId}" ORDER BY updated DESC`;
+    const jql = `project = FEHG AND assignee = "${options.assigneeAccountId}" AND due >= "2026-01-01" ORDER BY updated DESC`;
 
     this.logger.info(`담당자: ${user?.name || '알 수 없음'}`);
 

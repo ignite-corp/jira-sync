@@ -344,6 +344,71 @@ export default function DeploymentPage() {
     }
   };
 
+  // 라벨 제거 핸들러
+  const handleRemoveLabels = async () => {
+    // 유효성 검증
+    if (selectedTickets.length === 0) {
+      toast.error('라벨을 제거할 티켓을 선택해주세요.');
+      return;
+    }
+
+    // 확인 대화상자
+    if (
+      !window.confirm(
+        `선택한 ${selectedTickets.length}개 티켓의 모든 라벨을 제거하시겠습니까?`
+      )
+    ) {
+      return;
+    }
+
+    setIsApplyingTags(true);
+    setAppliedTickets([]);
+
+    try {
+      toast.info(`${selectedTickets.length}개 티켓의 라벨을 제거하는 중...`);
+
+      const response = await fetch('/api/deployment/apply-tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketKeys: selectedTickets,
+          labels: [], // 빈 배열로 라벨 제거
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.successTickets) {
+        setAppliedTickets(result.successTickets);
+
+        if (result.failedTickets && result.failedTickets.length > 0) {
+          toast.warning(
+            `${result.successTickets.length}개 성공, ${result.failedTickets.length}개 실패`,
+            { duration: 5000 }
+          );
+        } else {
+          toast.success(
+            `${result.successTickets.length}개 티켓의 라벨이 제거되었습니다!`,
+            { duration: 5000 }
+          );
+        }
+
+        // 티켓 목록 새로고침 (라벨이 제거된 것을 반영)
+        if (tagProject && selectedUser && baseMonth) {
+          await handleFetchTickets();
+        }
+      } else {
+        toast.error(result.error || '라벨 제거에 실패했습니다.');
+      }
+    } catch (error) {
+      toast.error(
+        `라벨 제거 실패: ${error instanceof Error ? error.message : String(error)}`
+      );
+    } finally {
+      setIsApplyingTags(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-background">
       {/* Header */}
@@ -827,9 +892,16 @@ export default function DeploymentPage() {
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
-                              <div className="text-xs text-muted-foreground">
+                              <a
+                                href={`https://hmg.atlassian.net/browse/${ticket.key}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium inline-flex items-center gap-1"
+                              >
                                 {ticket.key}
-                              </div>
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
                               {ticket.labels && ticket.labels.length > 0 && (
                                 <div className="flex gap-1 flex-wrap">
                                   {ticket.labels.slice(0, 3).map((label) => (
@@ -910,7 +982,7 @@ export default function DeploymentPage() {
                   </div>
 
                   {/* 적용 버튼 */}
-                  <div className="pt-4 border-t">
+                  <div className="pt-4 border-t space-y-2">
                     <Button
                       onClick={handleApplyTags}
                       disabled={
@@ -928,6 +1000,23 @@ export default function DeploymentPage() {
                         ? '적용 중...'
                         : '배포대장에 티켓 추가하기'}
                     </Button>
+                    <Button
+                      onClick={handleRemoveLabels}
+                      disabled={isApplyingTags || selectedTickets.length === 0}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                    >
+                      <Tag
+                        className={`mr-2 h-4 w-4 ${isApplyingTags ? 'animate-spin' : ''}`}
+                      />
+                      {isApplyingTags
+                        ? '처리 중...'
+                        : '선택한 티켓의 라벨 제거'}
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      라벨 제거 시 선택한 티켓의 모든 라벨이 삭제됩니다
+                    </p>
                   </div>
 
                   {/* 적용 결과 */}

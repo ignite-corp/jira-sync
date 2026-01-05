@@ -21,9 +21,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!body.labels || body.labels.length === 0) {
+    // labels가 undefined인 경우만 에러 (빈 배열은 허용 - 라벨 제거용)
+    if (body.labels === undefined) {
       return NextResponse.json(
-        { success: false, error: '적용할 레이블이 없습니다.' },
+        { success: false, error: 'labels 필드가 필요합니다.' },
         { status: 400 }
       );
     }
