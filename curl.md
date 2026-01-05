@@ -31,7 +31,7 @@ curl -s --request GET \
 
 ```bash
 curl -s --request GET \
- --url 'https://hmg.atlassian.net/rest/api/3/issue/AUTOWAY-2837' \
+ --url 'https://hmg.atlassian.net/rest/api/3/issue/AUTOWAY-2636' \
  --header 'User-Agent: curl' \
  --user 'zs11262@hyundai-partners.com:ATATT3xFfGF0v70_ChxuVu_2AttcM-kGLOMQrkgbMtcxRFNO8zDGTP2vcSi5-j2Mfv6NNpEhD4tj8wBFyp-9aqEl2IX72YLmjVdVKmt4e9zcMneRnUnEbjv0AKSbMdsFUeo6vDDi0ycPLvSNmBaIlt0ulVl6jfXFhDBXB8X4ipHGsWqfyxpWw18=CAA1E8F6' \
  --header 'Accept: application/json'
