@@ -377,7 +377,7 @@ export default function Home() {
 
     try {
       // 사용자 정보 가져오기
-      const userInfo = JIRA_USERS[selectedUser as keyof typeof JIRA_USERS];
+      const userInfo = JIRA_USERS[selectedUser];
       if (!userInfo) {
         toast.error('사용자 정보를 찾을 수 없습니다.');
         return;
@@ -512,7 +512,7 @@ export default function Home() {
 
     try {
       // 사용자 정보 가져오기
-      const userInfo = JIRA_USERS[selectedUser as keyof typeof JIRA_USERS];
+      const userInfo = JIRA_USERS[selectedUser];
       if (!userInfo) {
         toast.error('사용자 정보를 찾을 수 없습니다.');
         return;

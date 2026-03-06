@@ -285,7 +285,7 @@ export default function CreateTicketPage() {
 
     // 사용자 정보 조회 (생성 시 저장된 담당자 사용)
     const userInfo =
-      JIRA_USERS[createdTicketAssignee as keyof typeof JIRA_USERS];
+      JIRA_USERS[createdTicketAssignee];
     if (!userInfo) {
       toast.error('사용자 정보를 찾을 수 없습니다.');
       return;

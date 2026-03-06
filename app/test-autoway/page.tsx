@@ -223,8 +223,8 @@ export default function AutowayTestPage() {
     }
 
     const assigneeAccountId =
-      selectedUser && JIRA_USERS[selectedUser as keyof typeof JIRA_USERS]
-        ? JIRA_USERS[selectedUser as keyof typeof JIRA_USERS].igniteAccountId
+      selectedUser && JIRA_USERS[selectedUser]
+        ? JIRA_USERS[selectedUser].igniteAccountId
         : fehgIssue.fields.assignee?.accountId;
 
     if (!assigneeAccountId) {

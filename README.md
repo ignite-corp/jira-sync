@@ -42,13 +42,35 @@ SONARQUBE_URL=
 
 > 💡 **API 토큰 발급**: Jira → 프로필 → 보안 → API 토큰 생성
 
-### 4. 개발 서버 실행
+### 4. 사용자 정보 설정
+
+`lib/constants/jira-users.example.json`을 복사하여 `lib/constants/jira-users.json`을 생성하고, 본인의 Jira 계정 정보를 입력:
+
+```bash
+cp lib/constants/jira-users.example.json lib/constants/jira-users.json
+```
+
+```json
+{
+  "홍길동": {
+    "igniteAccountId": "Ignite Jira 계정 ID",
+    "hmgAccountId": "HMG Jira 계정 ID",
+    "hmgUserId": "HMG 사번 (예: ZS00000)"
+  }
+}
+```
+
+> 💡 **계정 ID 확인**: Jira 프로필 URL에서 확인하거나 관리자에게 문의
+>
+> `jira-users.json`은 `.gitignore`에 포함되어 있으므로 개인 정보가 저장소에 커밋되지 않습니다.
+
+### 5. 개발 서버 실행
 
 ```bash
 npm run dev
 ```
 
-### 5. 접속
+### 6. 접속
 
 ```
 http://localhost:7591
@@ -94,8 +116,10 @@ fe1-web/
 │   │   └── sync/         # 동기화 로직
 │   ├── types/            # TypeScript 타입 정의
 │   ├── constants/        # 상수 및 설정
+│   │   ├── jira-users.json          # 로컬 사용자 정보 (생성 필요, gitignore)
+│   │   └── jira-users.example.json  # 사용자 정보 템플릿
 │   └── utils/            # 유틸리티 함수
-└── .env.local           # 환경 변수 (생성 필요)
+├── .env.local           # 환경 변수 (생성 필요, gitignore)
 ```
 
 ---

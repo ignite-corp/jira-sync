@@ -28,6 +28,9 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# local user config
+lib/constants/jira-users.json
+
 # vercel
 .vercel
 

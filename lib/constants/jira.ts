@@ -1,3 +1,5 @@
+import usersData from './jira-users.json';
+
 // Jira 엔드포인트 및 상수
 
 export const JIRA_ENDPOINTS = {
@@ -124,64 +126,25 @@ export const JIRA_CONFIG = {
   ],
 } as const;
 
+// 사용자 정보 타입
+export type JiraUser = {
+  name: string;
+  igniteAccountId: string;
+  hmgAccountId: string;
+  hmgUserId: string;
+};
+
 // 사용자 정보
-export const JIRA_USERS = {
-  한준호: {
-    name: '한준호',
-    igniteAccountId: '712020:f4f9e56c-4b40-41ac-af83-5d2f774a72d5',
-    hmgAccountId: '712020:92f069fc-d884-4de8-bb47-0cf495905085',
-    hmgUserId: 'ZS17249',
-  },
-  손현지: {
-    name: '손현지',
-    igniteAccountId: '639a6767f134138b5a5132f6',
-    hmgAccountId: '712020:10bf3035-9bab-4863-99ff-6339cfd50b04',
-    hmgUserId: 'ZS11269',
-  },
-  김가빈: {
-    name: '김가빈',
-    igniteAccountId: '637426199e48f2b9a6108c25',
-    hmgAccountId: '712020:145fb996-72f9-4505-86ab-947ed46cb53c',
-    hmgUserId: 'ZS11185',
-  },
-  박성찬: {
-    name: '박성찬',
-    igniteAccountId: '638d49155fce844d606c7682',
-    hmgAccountId: '712020:dc4e01a0-8e27-4d10-8e9d-d9620b5ec6fe',
-    hmgUserId: 'ZS11241',
-  },
-  서성주: {
-    name: '서성주',
-    igniteAccountId: '639fa03f2c70aae1e6f79806',
-    hmgAccountId: '712020:a314415b-f3a0-4a33-b8d9-d1e98ca5dd01',
-    hmgUserId: 'ZS11262',
-  },
-  김찬영: {
-    name: '김찬영',
-    igniteAccountId: '712020:11fff4cb-cb95-457e-95a2-6cf9045c53b2',
-    hmgAccountId: '712020:6c47ac37-a86e-4c35-9df2-ac8543e80ee1',
-    hmgUserId: 'Z204225',
-  },
-  조한빈: {
-    name: '조한빈',
-    igniteAccountId: '712020:403a306e-0eff-4d57-9fda-2f517158d40f',
-    hmgAccountId: '712020:3c8fa6cd-9088-4ad7-8c9e-6d745dc5e3b0',
-    hmgUserId: 'Z204285',
-  },
-  이미진: {
-    name: '이미진',
-    igniteAccountId: '712020:96cf8ab5-20ff-4d6b-960d-5d38b7a46a39',
-    hmgAccountId: '712020:3387495c-bc4f-4c65-a5c4-000863a7fcc1',
-    hmgUserId: 'ZS18620',
-  },
-} as const;
+export const JIRA_USERS: Record<string, JiraUser> = Object.fromEntries(
+  Object.entries(usersData).map(([name, user]) => [name, { ...user, name }])
+);
 
 // 사용자 목록 배열 (UI용)
 export const JIRA_USER_LIST = Object.values(JIRA_USERS);
 
 // 이름으로 사용자 정보 찾기
 export const JIRA_USER_MAP = {
-  byName: (name: string) => JIRA_USERS[name as keyof typeof JIRA_USERS],
+  byName: (name: string) => JIRA_USERS[name],
   byIgniteAccountId: (accountId: string) =>
     JIRA_USER_LIST.find((user) => user.igniteAccountId === accountId),
   byHmgUserId: (userId: string) =>

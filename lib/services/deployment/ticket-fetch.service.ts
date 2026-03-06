@@ -63,7 +63,7 @@ export async function fetchDeploymentTickets(
     const { project, userName, baseMonth } = request;
 
     // 1. 사용자 정보 조회
-    const userInfo = JIRA_USERS[userName as keyof typeof JIRA_USERS];
+    const userInfo = JIRA_USERS[userName];
     if (!userInfo) {
       return {
         success: false,
