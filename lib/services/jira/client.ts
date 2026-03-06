@@ -71,6 +71,8 @@ export class JiraClient {
    * GET 요청
    */
   async get<T>(path: string, params?: Record<string, string | number>) {
+    console.log(this);
+    console.log(path);
     return this.request<T>(path, { method: 'GET', params });
   }
 

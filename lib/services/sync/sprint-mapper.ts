@@ -1,7 +1,7 @@
 // 스프린트 매핑 로직 (캐싱 포함)
 
 import { SprintInfo } from './types';
-import { BOARD_IDS } from '@/lib/constants/jira';
+import { BOARD_IDS, MAIN_PROJECT_KEY } from '@/lib/constants/jira';
 
 /**
  * 스프린트 캐시 클래스
@@ -63,7 +63,7 @@ const sprintCache = new SprintCache();
  * 예: "FEHG 2511" → "2511"
  */
 function extractSprintPeriod(sprintName: string): string | null {
-  const match = sprintName.match(/FEHG\s+(\d{4})/);
+  const match = sprintName.match(new RegExp(`${MAIN_PROJECT_KEY}\\s+(\\d{4})`));
   return match ? match[1] : null;
 }
 

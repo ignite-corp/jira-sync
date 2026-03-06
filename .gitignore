@@ -30,6 +30,7 @@ yarn-error.log*
 
 # local user config
 lib/constants/jira-users.json
+lib/constants/jira-projects.json
 
 # vercel
 .vercel

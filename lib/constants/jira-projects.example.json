@@ -1,0 +1,15 @@
+{
+  "source": {
+    "key": "YOUR_PROJECT",
+    "id": "10000",
+    "name": "메인 프로젝트 이름",
+    "description": "기준 프로젝트 - 개발자들이 직접 관리",
+    "boardId": 100
+  },
+  "igniteTargets": [
+    { "key": "TARGET1", "id": "10001", "name": "대상 프로젝트 1", "description": "기준 프로젝트 기준으로 자동 업데이트", "boardId": 101 }
+  ],
+  "hmgTargets": [
+    { "key": "HMG_TARGET", "id": "10002", "name": "HMG 대상 프로젝트", "description": "기준 프로젝트 기준으로 자동 업데이트", "boardId": 102 }
+  ]
+}

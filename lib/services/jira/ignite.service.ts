@@ -1,4 +1,5 @@
 import { BaseJiraService } from './base.service';
+import { MAIN_PROJECT_KEY } from '@/lib/constants/jira';
 
 /**
  * Ignite Jira Service
@@ -14,14 +15,14 @@ export class IgniteJiraService extends BaseJiraService {
    * (작업자들이 직접 관리하는 프로젝트)
    */
   async getFEHGIssues() {
-    return this.getProjectIssues('FEHG');
+    return this.getProjectIssues(MAIN_PROJECT_KEY);
   }
 
   /**
    * FEHG 프로젝트의 완료되지 않은 에픽 조회
    */
   async getFEHGIncompleteEpics() {
-    const jql = `project = FEHG AND issuetype = 에픽 AND status != Done AND status != 완료 ORDER BY created DESC`;
+    const jql = `project = ${MAIN_PROJECT_KEY} AND issuetype = 에픽 AND status != Done AND status != 완료 ORDER BY created DESC`;
     return this.searchIssues(jql);
   }
 
@@ -33,7 +34,7 @@ export class IgniteJiraService extends BaseJiraService {
     if (result.success && result.data) {
       return {
         success: true,
-        data: result.data.filter((project) => project.key !== 'FEHG'),
+        data: result.data.filter((project) => project.key !== MAIN_PROJECT_KEY),
       };
     }
     return result;

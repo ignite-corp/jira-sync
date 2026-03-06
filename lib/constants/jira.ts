@@ -1,6 +1,18 @@
 import usersData from './jira-users.json';
+import projectsData from './jira-projects.json';
 
 // Jira 엔드포인트 및 상수
+
+type ProjectEntry = {
+  key: string;
+  id: string;
+  name: string;
+  boardId: number;
+  description?: string;
+};
+
+// 메인 프로젝트 키 (동기화 소스)
+export const MAIN_PROJECT_KEY = projectsData.source.key;
 
 export const JIRA_ENDPOINTS = {
   IGNITE: 'https://ignitecorp.atlassian.net',
@@ -12,55 +24,29 @@ export const JIRA_API_VERSION = '/rest/api/3';
 
 // 프로젝트 정보
 export const JIRA_PROJECTS = {
-  // Ignite Jira 프로젝트
-  IGNITE: {
-    FEHG: {
-      key: 'FEHG',
-      id: '10247',
-      name: '[FE1] 프로젝트 통합 JIRA',
-      description: '기준 프로젝트 - 개발자들이 직접 관리',
-    },
-    HB: {
-      key: 'HB',
-      id: '10411',
-      name: 'HMG Board',
-      description: 'FEHG 기준으로 자동 업데이트',
-    },
-    HDD: {
-      key: 'HDD',
-      id: '10135',
-      name: '현대디벨로퍼',
-      description: 'FEHG 기준으로 자동 업데이트',
-    },
-    KQ: {
-      key: 'KQ',
-      id: '10109',
-      name: 'kiacpo_qa',
-      description: 'FEHG 기준으로 자동 업데이트',
-    },
-  },
-  // HMG Jira 프로젝트
+  IGNITE: Object.fromEntries([
+    [projectsData.source.key, projectsData.source],
+    ...projectsData.igniteTargets.map((p) => [p.key, p]),
+  ]) as Record<string, ProjectEntry>,
   HMG: {
-    AUTOWAY: {
-      key: 'AUTOWAY',
-      id: '10363',
-      name: '[프로젝트] 차세대 그룹웨어 포털 구축',
-      description: 'FEHG 기준으로 자동 업데이트',
-    },
+    ...(Object.fromEntries(
+      projectsData.hmgTargets.map((p) => [p.key, p])
+    ) as Record<string, ProjectEntry>),
     ICTQMSCHE: {
       key: 'ICTQMSCHE',
       id: '10464',
       name: 'ICT 3자 통합(서비스QA)테스트/성능테스트',
       description: '읽기 전용 - 자동 업데이트 안 함',
-    },
+      boardId: 0,
+    } satisfies ProjectEntry,
   },
-} as const;
+};
 
-// 자동화 대상 프로젝트 (FEHG 제외)
+// 자동화 대상 프로젝트 (소스 프로젝트 제외)
 export const AUTO_SYNC_PROJECTS = {
-  IGNITE: ['HB', 'HDD', 'KQ'] as const,
-  HMG: ['AUTOWAY'] as const,
-} as const;
+  IGNITE: projectsData.igniteTargets.map((p) => p.key),
+  HMG: projectsData.hmgTargets.map((p) => p.key),
+};
 
 // 읽기 전용 프로젝트
 export const READ_ONLY_PROJECTS = {
@@ -382,13 +368,11 @@ export const ALLOWED_FEHG_TO_HMG_EPIC_DATA = [
 ] as const;
 
 // 보드 ID (스프린트 조회용)
-export const BOARD_IDS = {
-  FEHG: 251,
-  KQ: 20,
-  HB: 350,
-  HDD: 37,
-  AUTOWAY: 521,
-} as const;
+export const BOARD_IDS: Record<string, number> = Object.fromEntries([
+  [projectsData.source.key, projectsData.source.boardId],
+  ...projectsData.igniteTargets.map((p) => [p.key, p.boardId]),
+  ...projectsData.hmgTargets.map((p) => [p.key, p.boardId]),
+]);
 
 // 헬퍼 함수
 export const JiraProjectHelpers = {
@@ -416,8 +400,8 @@ export const JiraProjectHelpers = {
    */
   isAutoSyncProject: (projectKey: string) => {
     return (
-      AUTO_SYNC_PROJECTS.IGNITE.includes(projectKey as never) ||
-      AUTO_SYNC_PROJECTS.HMG.includes(projectKey as never)
+      AUTO_SYNC_PROJECTS.IGNITE.includes(projectKey) ||
+      AUTO_SYNC_PROJECTS.HMG.includes(projectKey)
     );
   },
 

@@ -42,14 +42,14 @@ SONARQUBE_URL=
 
 > 💡 **API 토큰 발급**: Jira → 프로필 → 보안 → API 토큰 생성
 
-### 4. 사용자 정보 설정
+### 4. 로컬 설정 파일 생성
 
-`lib/constants/jira-users.example.json`을 복사하여 `lib/constants/jira-users.json`을 생성하고, 본인의 Jira 계정 정보를 입력:
+아래 두 파일을 각각 복사한 뒤 본인 환경에 맞게 수정합니다.
 
+**사용자 정보** (`lib/constants/jira-users.json`):
 ```bash
 cp lib/constants/jira-users.example.json lib/constants/jira-users.json
 ```
-
 ```json
 {
   "홍길동": {
@@ -60,9 +60,21 @@ cp lib/constants/jira-users.example.json lib/constants/jira-users.json
 }
 ```
 
-> 💡 **계정 ID 확인**: Jira 프로필 URL에서 확인하거나 관리자에게 문의
+**프로젝트 설정** (`lib/constants/jira-projects.json`):
+```bash
+cp lib/constants/jira-projects.example.json lib/constants/jira-projects.json
+```
+```json
+{
+  "source":        { "key": "MYPROJ", "id": "10000", "name": "메인 프로젝트", "boardId": 100 },
+  "igniteTargets": [{ "key": "TARGET1", "id": "10001", "name": "대상 프로젝트", "boardId": 101 }],
+  "hmgTargets":    [{ "key": "HMG1",    "id": "10002", "name": "HMG 프로젝트", "boardId": 102 }]
+}
+```
+
+> 💡 **계정 ID / 프로젝트 ID 확인**: Jira 관리자 페이지 또는 API로 조회
 >
-> `jira-users.json`은 `.gitignore`에 포함되어 있으므로 개인 정보가 저장소에 커밋되지 않습니다.
+> 두 파일 모두 `.gitignore`에 포함되어 있으므로 개인/팀 설정이 저장소에 커밋되지 않습니다.
 
 ### 5. 개발 서버 실행
 

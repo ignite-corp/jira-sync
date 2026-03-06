@@ -8,7 +8,7 @@ import { HMGSyncService } from './hmg-sync.service';
 import { chunkArray } from './field-mapper';
 import { initSprintCache, preloadSprintCache } from './sprint-mapper';
 import { jira } from '@/lib/services/jira';
-import { JIRA_USERS } from '@/lib/constants/jira';
+import { JIRA_USERS, MAIN_PROJECT_KEY } from '@/lib/constants/jira';
 import { ConfluenceEpicClient } from '@/lib/services/confluence/client';
 
 /**
@@ -107,7 +107,7 @@ export class SyncOrchestrator {
       }
 
       this.logger.success(
-        `${fehgTickets.length}개의 FEHG 티켓 발견 - 동기화 시작`
+        `${fehgTickets.length}개의 ${MAIN_PROJECT_KEY} 티켓 발견 - 동기화 시작`
       );
 
       // 4. 티켓별 대상 프로젝트 결정 (1회 순회)
@@ -150,9 +150,9 @@ export class SyncOrchestrator {
     // 에픽 단위 동기화 모드 (담당자 무관)
     if (options.epicId && options.syncAllInEpic) {
       this.logger.info(
-        `FEHG-${options.epicId} 에픽 하위 전체 티켓 조회 중 (담당자 무관)...`
+        `${MAIN_PROJECT_KEY}-${options.epicId} 에픽 하위 전체 티켓 조회 중 (담당자 무관)...`
       );
-      const jql = `"Epic Link" = FEHG-${options.epicId} ORDER BY updated DESC`;
+      const jql = `"Epic Link" = ${MAIN_PROJECT_KEY}-${options.epicId} ORDER BY updated DESC`;
       const result = await jira.ignite.searchAllIssues(jql);
       if (result.success && result.data) {
         this.logger.info(`에픽 하위 전체 티켓: ${result.data.issues.length}개`);
@@ -163,8 +163,10 @@ export class SyncOrchestrator {
 
     // 에픽 지정 모드 (특정 담당자)
     if (options.epicId) {
-      this.logger.info(`FEHG-${options.epicId} 에픽 하위 티켓 조회 중...`);
-      const jql = `"Epic Link" = FEHG-${options.epicId} AND assignee = "${options.assigneeAccountId}" ORDER BY updated DESC`;
+      this.logger.info(
+        `${MAIN_PROJECT_KEY}-${options.epicId} 에픽 하위 티켓 조회 중...`
+      );
+      const jql = `"Epic Link" = ${MAIN_PROJECT_KEY}-${options.epicId} AND assignee = "${options.assigneeAccountId}" ORDER BY updated DESC`;
       const result = await jira.ignite.searchAllIssues(jql);
       if (result.success && result.data) {
         this.logger.info(
@@ -177,8 +179,12 @@ export class SyncOrchestrator {
 
     // 티켓 지정 모드
     if (options.ticketId) {
-      this.logger.info(`FEHG-${options.ticketId} 티켓 조회 중...`);
-      const result = await jira.ignite.getIssue(`FEHG-${options.ticketId}`);
+      this.logger.info(
+        `${MAIN_PROJECT_KEY}-${options.ticketId} 티켓 조회 중...`
+      );
+      const result = await jira.ignite.getIssue(
+        `${MAIN_PROJECT_KEY}-${options.ticketId}`
+      );
       return result.success && result.data ? [result.data] : [];
     }
 
@@ -187,7 +193,7 @@ export class SyncOrchestrator {
     const user = Object.values(JIRA_USERS).find(
       (u) => u.igniteAccountId === options.assigneeAccountId
     );
-    const jql = `project = FEHG AND assignee = "${options.assigneeAccountId}" AND due >= "2026-01-01" ORDER BY updated DESC`;
+    const jql = `project = ${MAIN_PROJECT_KEY} AND assignee = "${options.assigneeAccountId}" AND due >= "2026-01-01" ORDER BY updated DESC`;
 
     this.logger.info(`담당자: ${user?.name || '알 수 없음'}`);
 
@@ -247,7 +253,9 @@ export class SyncOrchestrator {
         const hasAutowayLink = hmgLink && /AUTOWAY-\d+/.test(hmgLink);
 
         const parentKey = ticket.fields.parent?.key;
-        const match = parentKey?.match(/FEHG-(\d+)/);
+        const match = parentKey?.match(
+          new RegExp(`${MAIN_PROJECT_KEY}-(\\d+)`)
+        );
         const epicNumber = match ? parseInt(match[1], 10) : null;
 
         // Confluence에서 허용된 에픽 목록 조회
@@ -384,11 +392,15 @@ export class SyncOrchestrator {
   ): Promise<Array<'KQ' | 'HDD' | 'HB' | 'AUTOWAY'>> {
     try {
       // 티켓 조회
-      this.logger.info(`FEHG-${ticketId}: 티켓 정보 조회 중...`);
-      const ticketResult = await jira.ignite.getIssue(`FEHG-${ticketId}`);
+      this.logger.info(`${MAIN_PROJECT_KEY}-${ticketId}: 티켓 정보 조회 중...`);
+      const ticketResult = await jira.ignite.getIssue(
+        `${MAIN_PROJECT_KEY}-${ticketId}`
+      );
 
       if (!ticketResult.success || !ticketResult.data) {
-        this.logger.error(`FEHG-${ticketId}: 티켓 조회 실패 - 동기화 중단`);
+        this.logger.error(
+          `${MAIN_PROJECT_KEY}-${ticketId}: 티켓 조회 실패 - 동기화 중단`
+        );
         return [];
       }
 
@@ -409,7 +421,7 @@ export class SyncOrchestrator {
 
       if (linkedProjects.length > 0) {
         this.logger.info(
-          `FEHG-${ticketId}: 연결된 티켓 발견 → ${linkedProjects.join(', ')} 동기화`
+          `${MAIN_PROJECT_KEY}-${ticketId}: 연결된 티켓 발견 → ${linkedProjects.join(', ')} 동기화`
         );
         return linkedProjects;
       }
@@ -418,7 +430,7 @@ export class SyncOrchestrator {
       const hmgLink = ticket.fields['customfield_10306'] as string | undefined;
       if (hmgLink && /AUTOWAY-\d+/.test(hmgLink)) {
         this.logger.info(
-          `FEHG-${ticketId}: customfield_10306 있음 → AUTOWAY 동기화`
+          `${MAIN_PROJECT_KEY}-${ticketId}: customfield_10306 있음 → AUTOWAY 동기화`
         );
         return ['AUTOWAY'];
       }
@@ -426,7 +438,7 @@ export class SyncOrchestrator {
       // 3. 상위 에픽 확인 (Confluence에서 허용 목록 조회)
       const parentKey = ticket.fields.parent?.key;
       if (parentKey) {
-        const match = parentKey.match(/FEHG-(\d+)/);
+        const match = parentKey.match(new RegExp(`${MAIN_PROJECT_KEY}-(\\d+)`));
         if (match) {
           const epicNumber = parseInt(match[1], 10);
 
@@ -449,7 +461,7 @@ export class SyncOrchestrator {
 
             if (isAllowedEpic) {
               this.logger.info(
-                `FEHG-${ticketId}: 허용된 에픽(${parentKey}) → AUTOWAY 동기화`
+                `${MAIN_PROJECT_KEY}-${ticketId}: 허용된 에픽(${parentKey}) → AUTOWAY 동기화`
               );
               return ['AUTOWAY'];
             }
@@ -459,7 +471,7 @@ export class SyncOrchestrator {
 
       // 4. 어디에도 해당하지 않음
       this.logger.warning(
-        `FEHG-${ticketId}: 동기화 대상 아님 (연결 티켓 없음, customfield_10306 없음, 허용되지 않은 에픽)`
+        `${MAIN_PROJECT_KEY}-${ticketId}: 동기화 대상 아님 (연결 티켓 없음, customfield_10306 없음, 허용되지 않은 에픽)`
       );
       return [];
     } catch (error) {
@@ -491,7 +503,7 @@ export class SyncOrchestrator {
           '👉 Confluence 페이지 확인: https://ignitecorp.atlassian.net/wiki/spaces/IF/pages/2018738177'
         );
         this.logger.warning(
-          `FEHG-${epicId}: AUTOWAY 대상 여부 확인 불가 - 기본 프로젝트(KQ, HB, HDD)로 동기화`
+          `${MAIN_PROJECT_KEY}-${epicId}: AUTOWAY 대상 여부 확인 불가 - 기본 프로젝트(KQ, HB, HDD)로 동기화`
         );
         // Confluence 조회 실패 시 AUTOWAY 제외하고 기본 프로젝트로 진행
       } else {
@@ -501,25 +513,27 @@ export class SyncOrchestrator {
 
         if (isAllowedEpic) {
           this.logger.info(
-            `FEHG-${epicId}: AUTOWAY 허용 에픽 → AUTOWAY만 동기화`
+            `${MAIN_PROJECT_KEY}-${epicId}: AUTOWAY 허용 에픽 → AUTOWAY만 동기화`
           );
           return ['AUTOWAY'];
         }
       }
 
       // 3. 에픽 정보 조회하여 summary 확인
-      this.logger.info(`FEHG-${epicId}: 에픽 정보 조회 중...`);
-      const epicResult = await jira.ignite.getIssue(`FEHG-${epicId}`);
+      this.logger.info(`${MAIN_PROJECT_KEY}-${epicId}: 에픽 정보 조회 중...`);
+      const epicResult = await jira.ignite.getIssue(
+        `${MAIN_PROJECT_KEY}-${epicId}`
+      );
 
       if (!epicResult.success || !epicResult.data) {
         this.logger.warning(
-          `FEHG-${epicId}: 에픽 조회 실패 - 기본 프로젝트(KQ, HB, HDD)로 동기화`
+          `${MAIN_PROJECT_KEY}-${epicId}: 에픽 조회 실패 - 기본 프로젝트(KQ, HB, HDD)로 동기화`
         );
         return ['KQ', 'HB', 'HDD'];
       }
 
       const epicSummary = epicResult.data.fields.summary;
-      this.logger.info(`FEHG-${epicId}: "${epicSummary}"`);
+      this.logger.info(`${MAIN_PROJECT_KEY}-${epicId}: "${epicSummary}"`);
 
       // 4. Summary에서 프로젝트 prefix 확인
       if (epicSummary.includes('[KQ]')) {

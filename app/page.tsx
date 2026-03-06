@@ -25,6 +25,8 @@ import {
   JIRA_USER_LIST,
   JIRA_USERS,
   JIRA_ENDPOINTS,
+  MAIN_PROJECT_KEY,
+  AUTO_SYNC_PROJECTS,
   // ALLOWED_FEHG_TO_HMG_EPIC_IDS, // handleCheckAutowayTargets에서 사용 (현재 주석 처리됨)
   // IGNITE_CUSTOM_FIELDS, // handleMigrateOldHmgLinks에서 사용 (현재 주석 처리됨)
 } from '@/lib/constants/jira';
@@ -386,7 +388,7 @@ export default function Home() {
       // 대상 프로젝트 결정
       let targetProjects: SyncTargetProject[] | undefined;
       if (syncType !== '전체') {
-        const match = syncType.match(/FEHG -> (\w+)/);
+        const match = syncType.match(new RegExp(`${MAIN_PROJECT_KEY} -> (\\w+)`));
         if (match) {
           targetProjects = [match[1] as SyncTargetProject];
         }
@@ -787,12 +789,11 @@ export default function Home() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="전체">전체</SelectItem>
-                        <SelectItem value="FEHG -> KQ">FEHG → KQ</SelectItem>
-                        <SelectItem value="FEHG -> HDD">FEHG → HDD</SelectItem>
-                        <SelectItem value="FEHG -> HB">FEHG → HB</SelectItem>
-                        <SelectItem value="FEHG -> AUTOWAY">
-                          FEHG → AUTOWAY
-                        </SelectItem>
+                        {[...AUTO_SYNC_PROJECTS.IGNITE, ...AUTO_SYNC_PROJECTS.HMG].map((target) => (
+                          <SelectItem key={target} value={`${MAIN_PROJECT_KEY} -> ${target}`}>
+                            {MAIN_PROJECT_KEY} → {target}
+                          </SelectItem>
+                        ))}
                         <SelectItem value="에픽 지정">에픽 지정</SelectItem>
                         <SelectItem value="티켓 지정">티켓 지정</SelectItem>
                       </SelectContent>

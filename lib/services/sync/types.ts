@@ -6,7 +6,7 @@ export type SyncTargetProject = 'KQ' | 'HDD' | 'HB' | 'AUTOWAY';
 // 동기화 모드
 export type SyncMode =
   | '전체'
-  | `FEHG -> ${SyncTargetProject}`
+  | `${string} -> ${SyncTargetProject}`
   | '에픽 지정'
   | '티켓 지정';
 
